@@ -1,10 +1,11 @@
 # Murmur
 
-Steady noise to sleep to, for Android. Nine sounds:
+Steady noise to sleep to, for Android. Ten sounds:
 
 - **Airplane**: the roar of a cabin in flight, with an engine hum under it
 - **Airplane, softer**: the same with most of the hiss taken away
 - **Airplane, deep**: nearly all low rumble (wants headphones or a speaker with some bass)
+- **Airplane, deep + pink**: the deep rumble with a little pink noise over it
 - **Airplane, more hum**: quieter noise under a fuller hum
 - **Propeller plane**: a buzzier engine
 - **Fan**: an even whoosh

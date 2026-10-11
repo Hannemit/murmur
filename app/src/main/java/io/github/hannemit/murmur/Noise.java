@@ -13,7 +13,8 @@ final class Noise {
     static final int SAMPLE_RATE = 44100;
 
     enum Sound {
-        AIRPLANE, AIRPLANE_SOFT, AIRPLANE_DEEP, AIRPLANE_DRONE, PROPELLER, FAN, BROWN, PINK, WHITE;
+        AIRPLANE, AIRPLANE_SOFT, AIRPLANE_DEEP, AIRPLANE_DEEP_PINK, AIRPLANE_DRONE, PROPELLER,
+        FAN, BROWN, PINK, WHITE;
 
         /** Whether this sound has an engine hum for {@link Noise#setHum} to adjust. */
         boolean hasHum() {
@@ -37,6 +38,8 @@ final class Noise {
         /** The whole mix is rolled off above this, by 6 dB per octave for each of {@code topPoles}. */
         double topHz;
         int topPoles;
+        /** Pink noise laid over the finished mix, past the roll-off, dulled only above {@code airHz}. */
+        double air, airHz;
         /**
          * The hum: one cycle lasts {@code humPeriod} samples, with a fundamental
          * and overtones at the levels in {@code harmonics}. Because the period is
@@ -88,6 +91,20 @@ final class Noise {
                 r.harmonics = new double[] {0.070, 0.055, 0.035, 0.018};
                 r.drone = 0.15;
                 r.gain = 3.0;
+                break;
+            case AIRPLANE_DEEP_PINK:
+                // The deep rumble again, with a little pink noise over it so the
+                // top is not empty. The pink sits about 18 dB under the rumble.
+                r.rumble = 1;
+                r.rumbleHz = 70;
+                r.topHz = 600;
+                r.topPoles = 2;
+                r.humPeriod = 500; // 88.2 Hz
+                r.harmonics = new double[] {0.070, 0.055, 0.035, 0.018};
+                r.drone = 0.15;
+                r.gain = 3.0;
+                r.air = 0.018;
+                r.airHz = 5000;
                 break;
             case AIRPLANE_DRONE:
                 // A quieter bed of noise under a fuller hum with more overtones.
@@ -205,6 +222,7 @@ final class Noise {
         private final Biquad floor;
         private final OnePole top1;
         private final OnePole top2;
+        private final OnePole airTone;
         private final Biquad drone1;
         private final Biquad drone2;
 
@@ -217,6 +235,7 @@ final class Noise {
             floor = recipe.floorHz > 0 ? Biquad.highPass(recipe.floorHz, 0.707) : null;
             top1 = recipe.topPoles >= 1 ? new OnePole(recipe.topHz) : null;
             top2 = recipe.topPoles >= 2 ? new OnePole(recipe.topHz) : null;
+            airTone = recipe.airHz > 0 ? new OnePole(recipe.airHz) : null;
             drone1 = recipe.drone > 0 ? Biquad.bandPass(humHz, 5) : null;
             drone2 = recipe.drone > 0 ? Biquad.bandPass(2 * humHz, 6) : null;
         }
@@ -225,15 +244,15 @@ final class Noise {
             double w = white();
             double mix = recipe.white * w;
             if (rumble != null) mix += recipe.rumble * rumble.run(w);
-            if (recipe.pink > 0) {
-                double p = pink(w);
-                mix += recipe.pink * (pinkTone != null ? pinkTone.run(p) : p);
-            }
+            double p = recipe.pink > 0 || recipe.air > 0 ? pink(w) : 0;
+            if (recipe.pink > 0) mix += recipe.pink * (pinkTone != null ? pinkTone.run(p) : p);
             if (floor != null) mix = floor.run(mix);
             if (drone1 != null) mix += recipe.drone * (drone1.run(w) + 0.5 * drone2.run(w));
             if (top1 != null) mix = top1.run(mix);
             if (top2 != null) mix = top2.run(mix);
-            return (float) (recipe.gain * mix);
+            mix *= recipe.gain;
+            if (recipe.air > 0) mix += recipe.air * (airTone != null ? airTone.run(p) : p);
+            return (float) mix;
         }
 
         /** Uniform white noise in -1..1 (xorshift64, top 24 bits). */

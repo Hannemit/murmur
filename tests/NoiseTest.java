@@ -65,7 +65,7 @@ public class NoiseTest {
         double firstMinute = mean(loudness, 0, 60);
         double lastMinute = mean(loudness, SECONDS - 60, SECONDS);
 
-        System.out.printf("%-14s hum %.1f  level %.3f  peak %.2f  per-second level %.1f%%..%.1f%% of average%n",
+        System.out.printf("%-18s hum %.1f  level %.3f  peak %.2f  per-second level %.1f%%..%.1f%% of average%n",
                 sound, hum, rms, peak, 100 * quietest / rms, 100 * loudest / rms);
 
         expect(sound, "produces only real numbers", finite);
