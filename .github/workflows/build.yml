@@ -1,0 +1,34 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Test the sounds
+        run: |
+          javac -d build/test app/src/main/java/io/github/hannemit/murmur/Noise.java tests/NoiseTest.java
+          java -cp build/test io.github.hannemit.murmur.NoiseTest
+      - name: Build
+        run: ./gradlew --no-daemon assembleRelease
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk murmur.apk
+          gh release create "v1.0.${GITHUB_RUN_NUMBER}" murmur.apk \
+            --title "Murmur 1.0.${GITHUB_RUN_NUMBER}" \
+            --notes "Download murmur.apk on your Android phone and open it to install." \
+            --latest

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Murmur</string>
+    <string name="sound_airplane">Airplane</string>
+    <string name="sound_fan">Fan</string>
+    <string name="sound_white">White noise</string>
+    <string name="start">Start</string>
+    <string name="stop">Stop</string>
+    <string name="status_off">Off</string>
+    <string name="status_on">Playing until you stop it</string>
+    <string name="notification_text">Playing. Tap to open.</string>
+    <string name="channel_playback">Playback</string>
+</resources>
