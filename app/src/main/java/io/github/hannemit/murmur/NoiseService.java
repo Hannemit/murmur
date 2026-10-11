@@ -30,6 +30,13 @@ public class NoiseService extends Service {
     private static final String CHANNEL = "playback";
     private static final int NOTIFICATION_ID = 1;
     private static final String PREFS = "murmur";
+    private static final String PREF_HUM = "hum";
+    private static final String PREF_VOLUME = "volume";
+    /** The volume slider runs from 0 to this, and starts here. */
+    static final int MAX_VOLUME = 100;
+    /** The hum slider runs from 0 to this; {@link #STANDARD_HUM} is the level the sound was tuned at. */
+    static final int MAX_HUM = 100;
+    private static final int STANDARD_HUM = Math.round(MAX_HUM / Noise.MAX_HUM);
 
     // The player outlives any one instance of the service, so a restart by the
     // system picks up the same audio thread rather than starting a second one.
@@ -70,6 +77,35 @@ public class NoiseService extends Service {
     static void saveSound(Context context, Noise.Sound sound) {
         context.getSharedPreferences(PREFS, MODE_PRIVATE).edit()
                 .putString(EXTRA_SOUND, sound.name()).apply();
+    }
+
+    /** The airplane's hum setting, from 0 to {@link #MAX_HUM}. */
+    static int savedHum(Context context) {
+        return context.getSharedPreferences(PREFS, MODE_PRIVATE).getInt(PREF_HUM, STANDARD_HUM);
+    }
+
+    /** Stores the hum setting and applies it to whatever is playing. */
+    static void setHum(Context context, int hum) {
+        context.getSharedPreferences(PREFS, MODE_PRIVATE).edit().putInt(PREF_HUM, hum).apply();
+        player.setHum((float) hum / STANDARD_HUM);
+    }
+
+    /** The app's own volume setting, from 0 to {@link #MAX_VOLUME}. */
+    static int savedVolume(Context context) {
+        return context.getSharedPreferences(PREFS, MODE_PRIVATE).getInt(PREF_VOLUME, MAX_VOLUME);
+    }
+
+    /** Stores the volume setting and applies it to whatever is playing. */
+    static void setVolume(Context context, int volume) {
+        context.getSharedPreferences(PREFS, MODE_PRIVATE).edit().putInt(PREF_VOLUME, volume).apply();
+        player.setVolume(gain(volume));
+    }
+
+    // Squared, because loudness is heard in ratios: this spreads the useful
+    // quiet levels over the slider instead of cramming them into its first tenth.
+    private static float gain(int volume) {
+        float fraction = (float) volume / MAX_VOLUME;
+        return fraction * fraction;
     }
 
     static int label(Noise.Sound sound) {
@@ -123,6 +159,8 @@ public class NoiseService extends Service {
         }
 
         wakeLock.acquire();
+        player.setHum((float) savedHum(this) / STANDARD_HUM);
+        player.setVolume(gain(savedVolume(this)));
         player.play(sound);
         setPlaying(sound);
         return START_STICKY;

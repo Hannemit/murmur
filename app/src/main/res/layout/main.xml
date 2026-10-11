@@ -50,10 +50,64 @@
             android:layout_weight="1"
             android:minHeight="24dp" />
 
+        <LinearLayout
+            android:layout_marginBottom="6dp"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="22dp"
+            android:paddingEnd="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:labelFor="@+id/volume"
+                android:text="@string/volume"
+                android:textColor="@color/text_dim"
+                android:textSize="15sp" />
+
+            <SeekBar
+                android:id="@+id/volume"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:progressBackgroundTint="@color/text_dim"
+                android:progressTint="@color/accent"
+                android:thumbTint="@color/accent" />
+        </LinearLayout>
+
         <TextView
             android:id="@+id/sound_airplane"
             style="@style/SoundChoice"
             android:text="@string/sound_airplane" />
+
+        <LinearLayout
+            android:id="@+id/hum_row"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="22dp"
+            android:paddingEnd="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:labelFor="@+id/hum"
+                android:text="@string/hum"
+                android:textColor="@color/text_dim"
+                android:textSize="15sp" />
+
+            <SeekBar
+                android:id="@+id/hum"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:progressBackgroundTint="@color/text_dim"
+                android:progressTint="@color/accent"
+                android:thumbTint="@color/accent" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/sound_fan"

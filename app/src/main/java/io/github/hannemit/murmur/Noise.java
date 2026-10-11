@@ -30,10 +30,16 @@ final class Noise {
         }
     }
 
+    /** Hum levels run from none to this many times the standard level of 1. */
+    static final float MAX_HUM = 2.5f;
+    private static final float HUM_STEP = 1f / (0.3f * SAMPLE_RATE);
+
     private final Sound sound;
     private final Channel left;
     private final Channel right;
     private int humPos;
+    private float humTarget = 1;
+    private float humLevel = 1;
 
     Noise(Sound sound) {
         this.sound = sound;
@@ -41,6 +47,11 @@ final class Noise {
         // point in the middle of the head. Any non-zero seeds will do.
         left = new Channel(0x9E3779B97F4A7C15L);
         right = new Channel(0xD1B54A32D192ED03L);
+    }
+
+    /** Sets how strong the airplane's engine hum is. Changes glide in rather than jump. */
+    void setHum(float level) {
+        humTarget = Math.max(0, Math.min(MAX_HUM, level));
     }
 
     /** Fills {@code out} with {@code frames} interleaved stereo frames, each sample within -1..1. */
@@ -58,7 +69,9 @@ final class Noise {
                     r = right.fan();
                     break;
                 default:
-                    float hum = HUM[humPos];
+                    if (humLevel < humTarget) humLevel = Math.min(humTarget, humLevel + HUM_STEP);
+                    else if (humLevel > humTarget) humLevel = Math.max(humTarget, humLevel - HUM_STEP);
+                    float hum = HUM[humPos] * humLevel;
                     if (++humPos == HUM_PERIOD) humPos = 0;
                     l = left.airplane() + hum;
                     r = right.airplane() + hum;

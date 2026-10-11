@@ -20,6 +20,8 @@ final class Player {
     private static final int BUFFER_BYTES = Noise.SAMPLE_RATE / 2 * 2 * 4;
 
     private volatile Noise.Sound wanted;
+    private volatile float hum = 1;
+    private volatile float volume = 1;
     private Thread thread;
 
     /** Starts playing, or cross-fades to {@code sound} if something is already playing. */
@@ -29,6 +31,16 @@ final class Player {
             thread = new Thread(this::run, "murmur-audio");
             thread.start();
         }
+    }
+
+    /** Sets the strength of the airplane's engine hum; see {@link Noise#setHum}. */
+    void setHum(float level) {
+        hum = level;
+    }
+
+    /** Sets the app's own volume, from 0 (silent) to 1 (as loud as the phone's volume allows). */
+    void setVolume(float level) {
+        volume = level;
     }
 
     /** Fades out and then releases the audio output. */
@@ -41,6 +53,7 @@ final class Player {
         float[] block = new float[BLOCK_FRAMES * 2];
         float step = 1f / (FADE_SECONDS * Noise.SAMPLE_RATE);
         float gain = 0;
+        float level = volume;
         Noise noise = null;
         Noise.Sound playing = null;
         AudioTrack track = null;
@@ -63,12 +76,17 @@ final class Player {
             }
 
             float goal = target == playing ? 1 : 0;
+            noise.setHum(hum);
             noise.render(block, BLOCK_FRAMES);
             for (int i = 0; i < block.length; i += 2) {
                 if (gain < goal) gain = Math.min(goal, gain + step);
                 else if (gain > goal) gain = Math.max(goal, gain - step);
-                block[i] *= gain;
-                block[i + 1] *= gain;
+                // The volume glides at the same rate, so dragging its slider never crackles.
+                float volume = this.volume;
+                if (level < volume) level = Math.min(volume, level + step);
+                else if (level > volume) level = Math.max(volume, level - step);
+                block[i] *= gain * level;
+                block[i + 1] *= gain * level;
             }
             if (gain == 0 && goal == 0) noise = null;
 

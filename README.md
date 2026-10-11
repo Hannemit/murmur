@@ -2,7 +2,8 @@
 
 Steady noise to sleep to, for Android. Three sounds:
 
-- **Airplane**: the deep rumble of a cabin in flight, with a soft engine hum under it
+- **Airplane**: the deep rumble of a cabin in flight, with an engine hum under it that you can
+  turn up, down or off with a slider
 - **Fan**: an even whoosh
 - **White noise**: plain static
 
@@ -10,6 +11,9 @@ Press Start and it plays until you press Stop, with the screen off or another ap
 There is no timer and no recording behind it: each sound is generated as it plays, so it never
 reaches an end, never loops, and is the same in the last hour of the night as in the first.
 Starting, stopping and switching sounds all fade.
+
+Murmur has its own volume slider, separate from the phone's. With an audiobook playing in another
+app, set the phone's volume for the voice and then turn Murmur down to taste.
 
 Nothing interrupts it. Other apps' sounds (a notification, an alarm) play over it instead of
 pausing it. Stop it from the app or from the Stop button on its notification.

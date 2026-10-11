@@ -13,7 +13,10 @@ public class NoiseTest {
     private static int failures;
 
     public static void main(String[] args) {
-        for (Noise.Sound sound : Noise.Sound.values()) check(sound);
+        for (Noise.Sound sound : Noise.Sound.values()) check(sound, 1);
+        // The airplane's hum is adjustable, so its extremes have to hold up too.
+        check(Noise.Sound.AIRPLANE, 0);
+        check(Noise.Sound.AIRPLANE, Noise.MAX_HUM);
         if (failures > 0) {
             System.out.println(failures + " check(s) failed");
             System.exit(1);
@@ -21,8 +24,11 @@ public class NoiseTest {
         System.out.println("All sounds are steady");
     }
 
-    private static void check(Noise.Sound sound) {
+    private static void check(Noise.Sound sound, float hum) {
         Noise noise = new Noise(sound);
+        noise.setHum(hum);
+        // Let the hum finish gliding to its level before measuring.
+        noise.render(new float[Noise.SAMPLE_RATE * 2], Noise.SAMPLE_RATE);
         float[] second = new float[Noise.SAMPLE_RATE * 2];
         double[] loudness = new double[SECONDS];
         double peak = 0;
@@ -66,8 +72,9 @@ public class NoiseTest {
         expect(sound, "has no loud second", loudest < 1.1 * rms);
         expect(sound, "is as loud at the end as at the start",
                 Math.abs(lastMinute / firstMinute - 1) < 0.02);
+        // The hum is shared by both ears; the noise around it must not be.
         expect(sound, "is not the same in both ears",
-                Math.abs(leftRight / (total / 2)) < 0.5);
+                Math.abs(leftRight / (total / 2)) < 0.75);
     }
 
     private static double mean(double[] values, int from, int to) {

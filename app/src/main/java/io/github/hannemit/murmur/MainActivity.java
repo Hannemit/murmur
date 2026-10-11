@@ -8,7 +8,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowInsets;
+import android.widget.SeekBar;
 import android.widget.TextView;
+
+import java.util.function.IntConsumer;
 
 /** One switch and three sounds. All the playing happens in {@link NoiseService}. */
 public class MainActivity extends Activity {
@@ -18,6 +21,7 @@ public class MainActivity extends Activity {
     private Noise.Sound selected;
     private TextView toggle;
     private TextView status;
+    private View humRow;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +52,32 @@ public class MainActivity extends Activity {
             Noise.Sound sound = SOUNDS[i];
             findViewById(SOUND_VIEWS[i]).setOnClickListener(v -> choose(sound));
         }
+
+        humRow = findViewById(R.id.hum_row);
+        slider(R.id.volume, NoiseService.MAX_VOLUME, NoiseService.savedVolume(this),
+                value -> NoiseService.setVolume(this, value));
+        slider(R.id.hum, NoiseService.MAX_HUM, NoiseService.savedHum(this),
+                value -> NoiseService.setHum(this, value));
+    }
+
+    private void slider(int id, int max, int value, IntConsumer onChange) {
+        SeekBar bar = findViewById(id);
+        bar.setMax(max);
+        bar.setProgress(value);
+        bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                if (fromUser) onChange.accept(progress);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar bar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar bar) {
+            }
+        });
     }
 
     @Override
@@ -89,5 +119,7 @@ public class MainActivity extends Activity {
         for (int i = 0; i < SOUNDS.length; i++) {
             findViewById(SOUND_VIEWS[i]).setSelected(SOUNDS[i] == selected);
         }
+        // The hum belongs to the airplane; the other sounds have none.
+        humRow.setVisibility(selected == Noise.Sound.AIRPLANE ? View.VISIBLE : View.GONE);
     }
 }

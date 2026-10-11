@@ -4,6 +4,8 @@
     <string name="sound_airplane">Airplane</string>
     <string name="sound_fan">Fan</string>
     <string name="sound_white">White noise</string>
+    <string name="volume">Volume</string>
+    <string name="hum">Engine hum</string>
     <string name="start">Start</string>
     <string name="stop">Stop</string>
     <string name="status_off">Off</string>
