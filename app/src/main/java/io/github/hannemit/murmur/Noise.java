@@ -74,7 +74,7 @@ final class Noise {
                 r.pinkHz = 1500;
                 r.topHz = 2200;
                 r.topPoles = 1;
-                r.harmonics = new double[] {0.060, 0.050, 0.030};
+                r.harmonics = new double[] {0.060, 0.050, 0.030, 0.016, 0.008};
                 r.drone = 0.12;
                 r.gain = 1.8;
                 break;
@@ -87,7 +87,7 @@ final class Noise {
                 r.pinkHz = 1000;
                 r.topHz = 1400;
                 r.topPoles = 2;
-                r.harmonics = new double[] {0.060, 0.050, 0.030, 0.012};
+                r.harmonics = new double[] {0.060, 0.050, 0.030, 0.016, 0.008};
                 r.drone = 0.12;
                 r.gain = 2.0;
                 break;
@@ -101,7 +101,7 @@ final class Noise {
                 r.topHz = 800;
                 r.topPoles = 2;
                 r.humPeriod = 500; // 88.2 Hz
-                r.harmonics = new double[] {0.070, 0.055, 0.035, 0.018};
+                r.harmonics = new double[] {0.070, 0.055, 0.035, 0.022, 0.012};
                 r.drone = 0.15;
                 r.gain = 2.5;
                 break;
@@ -115,7 +115,7 @@ final class Noise {
                 r.topHz = 800;
                 r.topPoles = 2;
                 r.humPeriod = 500; // 88.2 Hz
-                r.harmonics = new double[] {0.070, 0.055, 0.035, 0.018};
+                r.harmonics = new double[] {0.070, 0.055, 0.035, 0.022, 0.012};
                 r.drone = 0.15;
                 r.gain = 2.5;
                 r.air = 0.018;
@@ -177,8 +177,11 @@ final class Noise {
     }
 
     /** Hum levels run from none to this many times the standard level of 1. */
-    static final float MAX_HUM = 2.5f;
-    private static final float HUM_STEP = 1f / (0.3f * SAMPLE_RATE);
+    static final float MAX_HUM = 6f;
+    // Roughly how loud the noise under the hum is, as a mean square. Used to
+    // keep the overall loudness level while the hum is turned up.
+    private static final double BED_POWER = 0.1 * 0.1;
+    private static final float HUM_STEP = MAX_HUM / (0.6f * SAMPLE_RATE);
     // A second engine, fainter and a quarter of a hertz lower, so the hum swells
     // and ebbs very slightly every few seconds as it does between two real engines.
     private static final double SECOND_ENGINE = 0.12;
@@ -191,6 +194,8 @@ final class Noise {
     private int humPos2;
     private float humTarget = 1;
     private float humLevel = 1;
+    private final double humPower;
+    private float trim = 1;
 
     Noise(Sound sound) {
         Recipe recipe = recipe(sound);
@@ -202,6 +207,9 @@ final class Noise {
         boolean hasHum = recipe.harmonics.length > 0;
         hum = cycle(recipe.harmonics, hasHum ? recipe.humPeriod : 1, 1);
         hum2 = cycle(recipe.harmonics, hasHum ? recipe.humPeriod + 1 : 1, SECOND_ENGINE);
+        double power = 0;
+        for (double a : recipe.harmonics) power += a * a / 2;
+        humPower = power * (1 + SECOND_ENGINE * SECOND_ENGINE);
     }
 
     /** One cycle of the hum, {@code period} samples long. */
@@ -227,14 +235,27 @@ final class Noise {
     /** Fills {@code out} with {@code frames} interleaved stereo frames, each sample within -1..1. */
     void render(float[] out, int frames) {
         for (int i = 0; i < frames; i++) {
-            if (humLevel < humTarget) humLevel = Math.min(humTarget, humLevel + HUM_STEP);
-            else if (humLevel > humTarget) humLevel = Math.max(humTarget, humLevel - HUM_STEP);
+            if (humLevel != humTarget) {
+                if (humLevel < humTarget) humLevel = Math.min(humTarget, humLevel + HUM_STEP);
+                else humLevel = Math.max(humTarget, humLevel - HUM_STEP);
+                trim = trim(humLevel);
+            }
             float h = (hum[humPos] + hum2[humPos2]) * humLevel;
             if (++humPos == hum.length) humPos = 0;
             if (++humPos2 == hum2.length) humPos2 = 0;
-            out[2 * i] = clamp(left.next() + h);
-            out[2 * i + 1] = clamp(right.next() + h);
+            out[2 * i] = clamp((left.next() + h) * trim);
+            out[2 * i + 1] = clamp((right.next() + h) * trim);
         }
+    }
+
+    /**
+     * Above the standard level, more hum has to mean less noise: there is no
+     * room to simply add it. This scales the whole sound so that it stays as
+     * loud as it was, which leaves the hum louder and the noise quieter.
+     */
+    private float trim(float level) {
+        if (level <= 1) return 1;
+        return (float) Math.sqrt((BED_POWER + humPower) / (BED_POWER + level * level * humPower));
     }
 
     // Filtered noise has no hard ceiling. The levels leave plenty of headroom, so

@@ -34,9 +34,10 @@ public class NoiseService extends Service {
     private static final String PREF_VOLUME = "volume";
     /** The volume slider runs from 0 to this, and starts here. */
     static final int MAX_VOLUME = 100;
-    /** The hum slider runs from 0 to this; {@link #STANDARD_HUM} is the level the sound was tuned at. */
+    /** The hum slider runs from 0 to this. */
     static final int MAX_HUM = 100;
-    private static final int STANDARD_HUM = Math.round(MAX_HUM / Noise.MAX_HUM);
+    /** Where the slider starts: the hum at the level the sounds were tuned with. */
+    private static final int STANDARD_HUM = (int) Math.round(MAX_HUM / Math.sqrt(Noise.MAX_HUM));
 
     // The player outlives any one instance of the service, so a restart by the
     // system picks up the same audio thread rather than starting a second one.
@@ -87,7 +88,14 @@ public class NoiseService extends Service {
     /** Stores the hum setting and applies it to whatever is playing. */
     static void setHum(Context context, int hum) {
         context.getSharedPreferences(PREFS, MODE_PRIVATE).edit().putInt(PREF_HUM, hum).apply();
-        player.setHum((float) hum / STANDARD_HUM);
+        player.setHum(humLevel(hum));
+    }
+
+    // Squared for the same reason as the volume: it gives the quiet end of the
+    // slider as much travel as the loud end.
+    private static float humLevel(int hum) {
+        float fraction = (float) hum / MAX_HUM;
+        return Noise.MAX_HUM * fraction * fraction;
     }
 
     /** The app's own volume setting, from 0 to {@link #MAX_VOLUME}. */
@@ -166,7 +174,7 @@ public class NoiseService extends Service {
         }
 
         wakeLock.acquire();
-        player.setHum((float) savedHum(this) / STANDARD_HUM);
+        player.setHum(humLevel(savedHum(this)));
         player.setVolume(gain(savedVolume(this)));
         player.play(sound);
         setPlaying(sound);
