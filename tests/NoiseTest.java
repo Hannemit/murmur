@@ -14,12 +14,10 @@ public class NoiseTest {
 
     public static void main(String[] args) {
         for (Noise.Sound sound : Noise.Sound.values()) {
+            // The hum is adjustable, so its extremes have to hold up too.
             check(sound, 1);
-            if (sound.hasHum()) {
-                // The hum is adjustable, so its extremes have to hold up too.
-                check(sound, 0);
-                check(sound, Noise.MAX_HUM);
-            }
+            check(sound, 0);
+            check(sound, Noise.MAX_HUM);
         }
         if (failures > 0) {
             System.out.println(failures + " check(s) failed");

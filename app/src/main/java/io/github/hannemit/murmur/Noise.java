@@ -12,19 +12,11 @@ package io.github.hannemit.murmur;
 final class Noise {
     static final int SAMPLE_RATE = 44100;
 
-    enum Sound {
-        AIRPLANE, AIRPLANE_SOFT, AIRPLANE_DEEP, AIRPLANE_DEEP_PINK, AIRPLANE_DRONE, PROPELLER,
-        FAN, BROWN, PINK, WHITE;
-
-        /** Whether this sound has an engine hum for {@link Noise#setHum} to adjust. */
-        boolean hasHum() {
-            return recipe(this).harmonics.length > 0;
-        }
-    }
+    enum Sound { AIRPLANE, AIRPLANE_SOFT, AIRPLANE_DEEP, AIRPLANE_DEEP_PINK, AIRPLANE_DRONE }
 
     /**
      * What a sound is made of. Up to three kinds of noise are mixed, the mix is
-     * trimmed at the bottom and the top, and an engine hum may be laid over it.
+     * trimmed at the bottom and the top, and an engine hum is laid over it.
      */
     private static final class Recipe {
         /** Deep noise that falls 6 dB per octave above {@code rumbleHz}: the body of a cabin's roar. */
@@ -38,8 +30,6 @@ final class Noise {
          * strength wanders by a fraction of a decibel, as moving air does.
          */
         double blow, blowHz;
-        /** Unfiltered white noise: pure static. */
-        double white;
         /** Nothing below this is kept; it would only be wasted speaker movement. */
         double floorHz = 30;
         /** The whole mix is rolled off above this, by 6 dB per octave for each of {@code topPoles}. */
@@ -134,44 +124,6 @@ final class Noise {
                 r.drone = 0.30;
                 r.gain = 1.5;
                 break;
-            case PROPELLER:
-                // A buzzier engine: many overtones, the second strongest, as
-                // from propeller blades passing the cabin.
-                r.rumble = 1;
-                r.pink = 0.006;
-                r.blow = 0.38;
-                r.blowHz = 450;
-                r.pinkHz = 1200;
-                r.topHz = 2000;
-                r.topPoles = 1;
-                r.humPeriod = 450; // 98 Hz
-                r.harmonics = new double[] {0.040, 0.065, 0.050, 0.040, 0.028, 0.020, 0.012, 0.008};
-                r.drone = 0.20;
-                r.gain = 1.5;
-                break;
-            case FAN:
-                // An even whoosh with the hiss taken off the top.
-                r.pink = 0.12;
-                r.pinkHz = 1000;
-                r.topHz = 4000;
-                r.topPoles = 1;
-                r.floorHz = 45;
-                break;
-            case BROWN:
-                // Falls 6 dB per octave all the way: a low, soft roar.
-                r.rumble = 1;
-                r.rumbleHz = 20;
-                r.floorHz = 40;
-                r.gain = 10;
-                break;
-            case PINK:
-                // Equal energy in every octave: like steady rain.
-                r.pink = 0.05;
-                break;
-            default:
-                r.white = 0.10;
-                r.floorHz = 0;
-                break;
         }
         return r;
     }
@@ -204,9 +156,8 @@ final class Noise {
         left = new Channel(recipe, 0x9E3779B97F4A7C15L);
         right = new Channel(recipe, 0xD1B54A32D192ED03L);
 
-        boolean hasHum = recipe.harmonics.length > 0;
-        hum = cycle(recipe.harmonics, hasHum ? recipe.humPeriod : 1, 1);
-        hum2 = cycle(recipe.harmonics, hasHum ? recipe.humPeriod + 1 : 1, SECOND_ENGINE);
+        hum = cycle(recipe.harmonics, recipe.humPeriod, 1);
+        hum2 = cycle(recipe.harmonics, recipe.humPeriod + 1, SECOND_ENGINE);
         double power = 0;
         for (double a : recipe.harmonics) power += a * a / 2;
         humPower = power * (1 + SECOND_ENGINE * SECOND_ENGINE);
@@ -227,7 +178,7 @@ final class Noise {
         return cycle;
     }
 
-    /** Sets how strong the engine hum is, for sounds that have one. Changes glide in rather than jump. */
+    /** Sets how strong the engine hum is. Changes glide in rather than jump. */
     void setHum(float level) {
         humTarget = Math.max(0, Math.min(MAX_HUM, level));
     }
@@ -314,8 +265,7 @@ final class Noise {
 
         float next() {
             double w = white();
-            double mix = recipe.white * w;
-            if (rumble != null) mix += recipe.rumble * rumble.run(w);
+            double mix = rumble != null ? recipe.rumble * rumble.run(w) : 0;
             double p = recipe.pink > 0 || recipe.air > 0 ? pink(w) : 0;
             if (recipe.pink > 0) mix += recipe.pink * (pinkTone != null ? pinkTone.run(p) : p);
             if (floor != null) mix = floor.run(mix);

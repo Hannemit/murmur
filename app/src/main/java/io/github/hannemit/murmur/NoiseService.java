@@ -122,11 +122,6 @@ public class NoiseService extends Service {
             case AIRPLANE_DEEP: return R.string.sound_airplane_deep;
             case AIRPLANE_DEEP_PINK: return R.string.sound_airplane_deep_pink;
             case AIRPLANE_DRONE: return R.string.sound_airplane_drone;
-            case PROPELLER: return R.string.sound_propeller;
-            case FAN: return R.string.sound_fan;
-            case BROWN: return R.string.sound_brown;
-            case PINK: return R.string.sound_pink;
-            case WHITE: return R.string.sound_white;
             default: return R.string.sound_airplane;
         }
     }

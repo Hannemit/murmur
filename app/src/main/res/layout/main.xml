@@ -50,6 +50,32 @@
             android:layout_weight="1"
             android:minHeight="24dp" />
 
+        <TextView
+            style="@style/SectionTitle"
+            android:text="@string/favourites" />
+
+        <LinearLayout
+            android:id="@+id/favourites"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <TextView
+            android:id="@+id/save_favourite"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:paddingStart="22dp"
+            android:paddingEnd="22dp"
+            android:text="@string/save_favourite"
+            android:textColor="@color/accent"
+            android:textSize="16sp" />
+
+        <TextView
+            style="@style/SectionTitle"
+            android:text="@string/sounds" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="48dp"
@@ -77,7 +103,6 @@
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/hum_row"
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:gravity="center_vertical"
