@@ -12,44 +12,166 @@ package io.github.hannemit.murmur;
 final class Noise {
     static final int SAMPLE_RATE = 44100;
 
-    enum Sound { AIRPLANE, FAN, WHITE }
+    enum Sound {
+        AIRPLANE, AIRPLANE_SOFT, AIRPLANE_DEEP, AIRPLANE_DRONE, PROPELLER, FAN, BROWN, PINK, WHITE;
 
-    // The engine hum is a fundamental plus two harmonics, each set close to the
-    // level of the noise around it so it is heard inside the rumble rather than
-    // on top of it. Its period is a whole number of samples, so one stored cycle
-    // repeats exactly, with no phase that could drift over a night.
-    private static final int HUM_PERIOD = 400; // 110.25 Hz
-    private static final float[] HUM = new float[HUM_PERIOD];
-
-    static {
-        for (int i = 0; i < HUM_PERIOD; i++) {
-            double t = 2 * Math.PI * i / HUM_PERIOD;
-            HUM[i] = (float) (0.060 * Math.sin(t)
-                    + 0.050 * Math.sin(2 * t + 1.1)
-                    + 0.030 * Math.sin(3 * t + 2.3));
+        /** Whether this sound has an engine hum for {@link Noise#setHum} to adjust. */
+        boolean hasHum() {
+            return recipe(this).harmonics.length > 0;
         }
+    }
+
+    /**
+     * What a sound is made of. Up to three kinds of noise are mixed, the mix is
+     * trimmed at the bottom and the top, and an engine hum may be laid over it.
+     */
+    private static final class Recipe {
+        /** Deep noise that falls 6 dB per octave above {@code rumbleHz}: the body of a cabin's roar. */
+        double rumble, rumbleHz = 110;
+        /** Pink noise, optionally dulled above {@code pinkHz}: the rush of air. */
+        double pink, pinkHz;
+        /** Unfiltered white noise: pure static. */
+        double white;
+        /** Nothing below this is kept; it would only be wasted speaker movement. */
+        double floorHz = 30;
+        /** The whole mix is rolled off above this, by 6 dB per octave for each of {@code topPoles}. */
+        double topHz;
+        int topPoles;
+        /**
+         * The hum: one cycle lasts {@code humPeriod} samples, with a fundamental
+         * and overtones at the levels in {@code harmonics}. Because the period is
+         * a whole number of samples, one stored cycle repeats exactly, with no
+         * phase that could drift over a night.
+         */
+        int humPeriod = 400; // 110.25 Hz
+        double[] harmonics = {};
+        /** Noise ringing at the hum's pitch, which gives the hum some breath. */
+        double drone;
+        double gain = 1;
+    }
+
+    private static Recipe recipe(Sound sound) {
+        Recipe r = new Recipe();
+        switch (sound) {
+            case AIRPLANE:
+                // Falls about 3 dB per octave, as cabin noise does, and faster
+                // above 3 kHz. Each part of the hum sits close to the level of
+                // the noise around it, so it is heard inside the rumble.
+                r.rumble = 1;
+                r.pink = 0.015;
+                r.pinkHz = 1500;
+                r.topHz = 3000;
+                r.topPoles = 1;
+                r.harmonics = new double[] {0.060, 0.050, 0.030};
+                r.drone = 0.12;
+                r.gain = 1.8;
+                break;
+            case AIRPLANE_SOFT:
+                // The same cabin with most of the hiss taken away.
+                r.rumble = 1;
+                r.pink = 0.008;
+                r.pinkHz = 1000;
+                r.topHz = 1400;
+                r.topPoles = 2;
+                r.harmonics = new double[] {0.060, 0.050, 0.030, 0.012};
+                r.drone = 0.12;
+                r.gain = 2.0;
+                break;
+            case AIRPLANE_DEEP:
+                // Nearly all rumble, pitched lower. Needs headphones or a speaker
+                // with some bass; a phone's own speaker can barely play it.
+                r.rumble = 1;
+                r.rumbleHz = 70;
+                r.topHz = 600;
+                r.topPoles = 2;
+                r.humPeriod = 500; // 88.2 Hz
+                r.harmonics = new double[] {0.070, 0.055, 0.035, 0.018};
+                r.drone = 0.15;
+                r.gain = 3.0;
+                break;
+            case AIRPLANE_DRONE:
+                // A quieter bed of noise under a fuller hum with more overtones.
+                r.rumble = 1;
+                r.pink = 0.008;
+                r.pinkHz = 1000;
+                r.topHz = 1400;
+                r.topPoles = 2;
+                r.harmonics = new double[] {0.060, 0.060, 0.045, 0.030, 0.020, 0.012};
+                r.drone = 0.30;
+                r.gain = 1.5;
+                break;
+            case PROPELLER:
+                // A buzzier engine: many overtones, the second strongest, as
+                // from propeller blades passing the cabin.
+                r.rumble = 1;
+                r.pink = 0.010;
+                r.pinkHz = 1200;
+                r.topHz = 2000;
+                r.topPoles = 1;
+                r.humPeriod = 450; // 98 Hz
+                r.harmonics = new double[] {0.040, 0.065, 0.050, 0.040, 0.028, 0.020, 0.012, 0.008};
+                r.drone = 0.20;
+                r.gain = 1.5;
+                break;
+            case FAN:
+                // An even whoosh with the hiss taken off the top.
+                r.pink = 0.12;
+                r.pinkHz = 1000;
+                r.topHz = 4000;
+                r.topPoles = 1;
+                r.floorHz = 45;
+                break;
+            case BROWN:
+                // Falls 6 dB per octave all the way: a low, soft roar.
+                r.rumble = 1;
+                r.rumbleHz = 20;
+                r.floorHz = 40;
+                r.gain = 10;
+                break;
+            case PINK:
+                // Equal energy in every octave: like steady rain.
+                r.pink = 0.05;
+                break;
+            default:
+                r.white = 0.10;
+                r.floorHz = 0;
+                break;
+        }
+        return r;
     }
 
     /** Hum levels run from none to this many times the standard level of 1. */
     static final float MAX_HUM = 2.5f;
     private static final float HUM_STEP = 1f / (0.3f * SAMPLE_RATE);
 
-    private final Sound sound;
     private final Channel left;
     private final Channel right;
+    private final float[] hum;
     private int humPos;
     private float humTarget = 1;
     private float humLevel = 1;
 
     Noise(Sound sound) {
-        this.sound = sound;
+        Recipe recipe = recipe(sound);
         // Each ear gets its own noise, which sounds wide rather than like a
         // point in the middle of the head. Any non-zero seeds will do.
-        left = new Channel(0x9E3779B97F4A7C15L);
-        right = new Channel(0xD1B54A32D192ED03L);
+        left = new Channel(recipe, 0x9E3779B97F4A7C15L);
+        right = new Channel(recipe, 0xD1B54A32D192ED03L);
+
+        int count = recipe.harmonics.length;
+        hum = new float[count == 0 ? 1 : recipe.humPeriod];
+        for (int i = 0; i < hum.length; i++) {
+            double v = 0;
+            for (int k = 1; k <= count; k++) {
+                // Staggered phases keep the overtones' peaks from piling up.
+                double phase = -Math.PI * k * (k - 1) / count;
+                v += recipe.harmonics[k - 1] * Math.sin(2 * Math.PI * k * i / hum.length + phase);
+            }
+            hum[i] = (float) v;
+        }
     }
 
-    /** Sets how strong the airplane's engine hum is. Changes glide in rather than jump. */
+    /** Sets how strong the engine hum is, for sounds that have one. Changes glide in rather than jump. */
     void setHum(float level) {
         humTarget = Math.max(0, Math.min(MAX_HUM, level));
     }
@@ -57,28 +179,12 @@ final class Noise {
     /** Fills {@code out} with {@code frames} interleaved stereo frames, each sample within -1..1. */
     void render(float[] out, int frames) {
         for (int i = 0; i < frames; i++) {
-            float l;
-            float r;
-            switch (sound) {
-                case WHITE:
-                    l = left.white() * 0.10f;
-                    r = right.white() * 0.10f;
-                    break;
-                case FAN:
-                    l = left.fan();
-                    r = right.fan();
-                    break;
-                default:
-                    if (humLevel < humTarget) humLevel = Math.min(humTarget, humLevel + HUM_STEP);
-                    else if (humLevel > humTarget) humLevel = Math.max(humTarget, humLevel - HUM_STEP);
-                    float hum = HUM[humPos] * humLevel;
-                    if (++humPos == HUM_PERIOD) humPos = 0;
-                    l = left.airplane() + hum;
-                    r = right.airplane() + hum;
-                    break;
-            }
-            out[2 * i] = clamp(l);
-            out[2 * i + 1] = clamp(r);
+            if (humLevel < humTarget) humLevel = Math.min(humTarget, humLevel + HUM_STEP);
+            else if (humLevel > humTarget) humLevel = Math.max(humTarget, humLevel - HUM_STEP);
+            float h = hum[humPos] * humLevel;
+            if (++humPos == hum.length) humPos = 0;
+            out[2 * i] = clamp(left.next() + h);
+            out[2 * i + 1] = clamp(right.next() + h);
         }
     }
 
@@ -89,30 +195,49 @@ final class Noise {
     }
 
     private static final class Channel {
+        private final Recipe recipe;
         private long seed;
         private double p0, p1, p2;
 
-        // Airplane: a deep rumble, some rush of air over the fuselage, and two
-        // soft resonances that give the steady hum some breath. Together they
-        // fall about 3 dB per octave, as cabin noise does, and faster above 3 kHz.
-        private final OnePole rumble = new OnePole(110);
-        private final Biquad rumbleFloor = Biquad.highPass(30, 0.707);
-        private final OnePole air = new OnePole(1500);
-        private final OnePole cabin = new OnePole(3000);
-        private final Biquad drone1 = Biquad.bandPass(110.25, 5);
-        private final Biquad drone2 = Biquad.bandPass(220.5, 6);
+        // Stages a recipe does not use are left null and skipped.
+        private final OnePole rumble;
+        private final OnePole pinkTone;
+        private final Biquad floor;
+        private final OnePole top1;
+        private final OnePole top2;
+        private final Biquad drone1;
+        private final Biquad drone2;
 
-        // Fan: an even whoosh with the hiss taken off the top.
-        private final OnePole fanTone = new OnePole(1000);
-        private final OnePole fanTop = new OnePole(4000);
-        private final Biquad fanFloor = Biquad.highPass(45, 0.707);
-
-        Channel(long seed) {
+        Channel(Recipe recipe, long seed) {
+            this.recipe = recipe;
             this.seed = seed;
+            double humHz = (double) SAMPLE_RATE / recipe.humPeriod;
+            rumble = recipe.rumble > 0 ? new OnePole(recipe.rumbleHz) : null;
+            pinkTone = recipe.pinkHz > 0 ? new OnePole(recipe.pinkHz) : null;
+            floor = recipe.floorHz > 0 ? Biquad.highPass(recipe.floorHz, 0.707) : null;
+            top1 = recipe.topPoles >= 1 ? new OnePole(recipe.topHz) : null;
+            top2 = recipe.topPoles >= 2 ? new OnePole(recipe.topHz) : null;
+            drone1 = recipe.drone > 0 ? Biquad.bandPass(humHz, 5) : null;
+            drone2 = recipe.drone > 0 ? Biquad.bandPass(2 * humHz, 6) : null;
+        }
+
+        float next() {
+            double w = white();
+            double mix = recipe.white * w;
+            if (rumble != null) mix += recipe.rumble * rumble.run(w);
+            if (recipe.pink > 0) {
+                double p = pink(w);
+                mix += recipe.pink * (pinkTone != null ? pinkTone.run(p) : p);
+            }
+            if (floor != null) mix = floor.run(mix);
+            if (drone1 != null) mix += recipe.drone * (drone1.run(w) + 0.5 * drone2.run(w));
+            if (top1 != null) mix = top1.run(mix);
+            if (top2 != null) mix = top2.run(mix);
+            return (float) (recipe.gain * mix);
         }
 
         /** Uniform white noise in -1..1 (xorshift64, top 24 bits). */
-        float white() {
+        private float white() {
             long x = seed;
             x ^= x << 13;
             x ^= x >>> 7;
@@ -127,19 +252,6 @@ final class Noise {
             p1 = 0.96300 * p1 + w * 0.2965164;
             p2 = 0.57000 * p2 + w * 1.0526913;
             return p0 + p1 + p2 + w * 0.1848;
-        }
-
-        float fan() {
-            double w = white();
-            return (float) (0.12 * fanFloor.run(fanTop.run(fanTone.run(pink(w)))));
-        }
-
-        float airplane() {
-            double w = white();
-            double low = rumbleFloor.run(rumble.run(w));
-            double rush = air.run(pink(w));
-            double mix = low + 0.015 * rush + 0.12 * drone1.run(w) + 0.06 * drone2.run(w);
-            return (float) (1.8 * cabin.run(mix));
         }
     }
 

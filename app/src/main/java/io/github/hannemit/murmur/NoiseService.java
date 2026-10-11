@@ -110,7 +110,13 @@ public class NoiseService extends Service {
 
     static int label(Noise.Sound sound) {
         switch (sound) {
+            case AIRPLANE_SOFT: return R.string.sound_airplane_soft;
+            case AIRPLANE_DEEP: return R.string.sound_airplane_deep;
+            case AIRPLANE_DRONE: return R.string.sound_airplane_drone;
+            case PROPELLER: return R.string.sound_propeller;
             case FAN: return R.string.sound_fan;
+            case BROWN: return R.string.sound_brown;
+            case PINK: return R.string.sound_pink;
             case WHITE: return R.string.sound_white;
             default: return R.string.sound_airplane;
         }

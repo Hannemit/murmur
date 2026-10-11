@@ -13,10 +13,14 @@ public class NoiseTest {
     private static int failures;
 
     public static void main(String[] args) {
-        for (Noise.Sound sound : Noise.Sound.values()) check(sound, 1);
-        // The airplane's hum is adjustable, so its extremes have to hold up too.
-        check(Noise.Sound.AIRPLANE, 0);
-        check(Noise.Sound.AIRPLANE, Noise.MAX_HUM);
+        for (Noise.Sound sound : Noise.Sound.values()) {
+            check(sound, 1);
+            if (sound.hasHum()) {
+                // The hum is adjustable, so its extremes have to hold up too.
+                check(sound, 0);
+                check(sound, Noise.MAX_HUM);
+            }
+        }
         if (failures > 0) {
             System.out.println(failures + " check(s) failed");
             System.exit(1);
@@ -61,12 +65,12 @@ public class NoiseTest {
         double firstMinute = mean(loudness, 0, 60);
         double lastMinute = mean(loudness, SECONDS - 60, SECONDS);
 
-        System.out.printf("%-9s level %.3f  peak %.2f  per-second level %.1f%%..%.1f%% of average%n",
-                sound, rms, peak, 100 * quietest / rms, 100 * loudest / rms);
+        System.out.printf("%-14s hum %.1f  level %.3f  peak %.2f  per-second level %.1f%%..%.1f%% of average%n",
+                sound, hum, rms, peak, 100 * quietest / rms, 100 * loudest / rms);
 
         expect(sound, "produces only real numbers", finite);
         expect(sound, "is clearly audible", rms > 0.04);
-        expect(sound, "is not too loud", rms < 0.2);
+        expect(sound, "is not too loud", rms < (hum > 1 ? 0.22 : 0.16));
         expect(sound, "never reaches the clipping point", peak < 0.99);
         expect(sound, "has no quiet second", quietest > 0.9 * rms);
         expect(sound, "has no loud second", loudest < 1.1 * rms);
@@ -74,7 +78,7 @@ public class NoiseTest {
                 Math.abs(lastMinute / firstMinute - 1) < 0.02);
         // The hum is shared by both ears; the noise around it must not be.
         expect(sound, "is not the same in both ears",
-                Math.abs(leftRight / (total / 2)) < 0.75);
+                hum > 1 || Math.abs(leftRight / (total / 2)) < 0.75);
     }
 
     private static double mean(double[] values, int from, int to) {

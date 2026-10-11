@@ -37,8 +37,8 @@
 
         <TextView
             android:id="@+id/toggle"
-            android:layout_width="176dp"
-            android:layout_height="176dp"
+            android:layout_width="152dp"
+            android:layout_height="152dp"
             android:background="@drawable/toggle"
             android:gravity="center"
             android:textColor="@color/text"
@@ -51,7 +51,6 @@
             android:minHeight="24dp" />
 
         <LinearLayout
-            android:layout_marginBottom="6dp"
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:gravity="center_vertical"
@@ -76,11 +75,6 @@
                 android:progressTint="@color/accent"
                 android:thumbTint="@color/accent" />
         </LinearLayout>
-
-        <TextView
-            android:id="@+id/sound_airplane"
-            style="@style/SoundChoice"
-            android:text="@string/sound_airplane" />
 
         <LinearLayout
             android:id="@+id/hum_row"
@@ -109,14 +103,10 @@
                 android:thumbTint="@color/accent" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/sound_fan"
-            style="@style/SoundChoice"
-            android:text="@string/sound_fan" />
-
-        <TextView
-            android:id="@+id/sound_white"
-            style="@style/SoundChoice"
-            android:text="@string/sound_white" />
+        <LinearLayout
+            android:id="@+id/sounds"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
     </LinearLayout>
 </ScrollView>

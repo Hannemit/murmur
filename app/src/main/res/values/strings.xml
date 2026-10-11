@@ -2,6 +2,12 @@
 <resources>
     <string name="app_name">Murmur</string>
     <string name="sound_airplane">Airplane</string>
+    <string name="sound_airplane_soft">Airplane, softer</string>
+    <string name="sound_airplane_deep">Airplane, deep</string>
+    <string name="sound_airplane_drone">Airplane, more hum</string>
+    <string name="sound_propeller">Propeller plane</string>
+    <string name="sound_brown">Brown noise</string>
+    <string name="sound_pink">Pink noise</string>
     <string name="sound_fan">Fan</string>
     <string name="sound_white">White noise</string>
     <string name="volume">Volume</string>

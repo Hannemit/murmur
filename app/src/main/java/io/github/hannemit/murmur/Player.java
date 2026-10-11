@@ -14,7 +14,7 @@ import android.os.SystemClock;
  */
 final class Player {
     private static final int BLOCK_FRAMES = 2048;
-    private static final float FADE_SECONDS = 0.8f;
+    private static final float FADE_SECONDS = 0.4f;
     // Half a second of audio queued in the system rides out any hiccup in this
     // thread. The price is that taps take that long to be heard, which is fine here.
     private static final int BUFFER_BYTES = Noise.SAMPLE_RATE / 2 * 2 * 4;

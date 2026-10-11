@@ -1,11 +1,18 @@
 # Murmur
 
-Steady noise to sleep to, for Android. Three sounds:
+Steady noise to sleep to, for Android. Nine sounds:
 
-- **Airplane**: the deep rumble of a cabin in flight, with an engine hum under it that you can
-  turn up, down or off with a slider
+- **Airplane**: the roar of a cabin in flight, with an engine hum under it
+- **Airplane, softer**: the same with most of the hiss taken away
+- **Airplane, deep**: nearly all low rumble (wants headphones or a speaker with some bass)
+- **Airplane, more hum**: quieter noise under a fuller hum
+- **Propeller plane**: a buzzier engine
 - **Fan**: an even whoosh
+- **Brown noise**: a low, soft roar
+- **Pink noise**: like steady rain
 - **White noise**: plain static
+
+The engine sounds have a slider for how strong the hum is, from none upwards.
 
 Press Start and it plays until you press Stop, with the screen off or another app open.
 There is no timer and no recording behind it: each sound is generated as it plays, so it never

@@ -7,6 +7,7 @@ import android.graphics.Insets;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -16,12 +17,13 @@ import java.util.function.IntConsumer;
 /** One switch and three sounds. All the playing happens in {@link NoiseService}. */
 public class MainActivity extends Activity {
     private static final Noise.Sound[] SOUNDS = Noise.Sound.values();
-    private static final int[] SOUND_VIEWS = {R.id.sound_airplane, R.id.sound_fan, R.id.sound_white};
 
     private Noise.Sound selected;
     private TextView toggle;
     private TextView status;
     private View humRow;
+    private SeekBar hum;
+    private final TextView[] choices = new TextView[SOUNDS.length];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,12 +50,17 @@ public class MainActivity extends Activity {
             if (NoiseService.playing == null) start();
             else NoiseService.stop(this);
         });
+        ViewGroup list = findViewById(R.id.sounds);
         for (int i = 0; i < SOUNDS.length; i++) {
             Noise.Sound sound = SOUNDS[i];
-            findViewById(SOUND_VIEWS[i]).setOnClickListener(v -> choose(sound));
+            choices[i] = (TextView) getLayoutInflater().inflate(R.layout.sound_choice, list, false);
+            choices[i].setText(NoiseService.label(sound));
+            choices[i].setOnClickListener(v -> choose(sound));
+            list.addView(choices[i]);
         }
 
         humRow = findViewById(R.id.hum_row);
+        hum = findViewById(R.id.hum);
         slider(R.id.volume, NoiseService.MAX_VOLUME, NoiseService.savedVolume(this),
                 value -> NoiseService.setVolume(this, value));
         slider(R.id.hum, NoiseService.MAX_HUM, NoiseService.savedHum(this),
@@ -117,9 +124,11 @@ public class MainActivity extends Activity {
         toggle.setText(on ? R.string.stop : R.string.start);
         status.setText(on ? R.string.status_on : R.string.status_off);
         for (int i = 0; i < SOUNDS.length; i++) {
-            findViewById(SOUND_VIEWS[i]).setSelected(SOUNDS[i] == selected);
+            choices[i].setSelected(SOUNDS[i] == selected);
         }
-        // The hum belongs to the airplane; the other sounds have none.
-        humRow.setVisibility(selected == Noise.Sound.AIRPLANE ? View.VISIBLE : View.GONE);
+        // Only the engine sounds have a hum. For the rest the slider stays in
+        // place, greyed out, so the list below it does not jump about.
+        humRow.setAlpha(selected.hasHum() ? 1f : 0.3f);
+        hum.setEnabled(selected.hasHum());
     }
 }
