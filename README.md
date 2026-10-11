@@ -15,6 +15,11 @@ Steady noise to sleep to, for Android. Ten sounds:
 
 The engine sounds have a slider for how strong the hum is, from none upwards.
 
+The airplane sounds are built from three layers: a low rumble, a band of noise shaped to sound like
+moving air, and the hum of two engines very slightly out of tune with each other. The air and the
+hum drift by a fraction of a decibel over several seconds, as they do in a real cabin. The fan and
+the plain noises do not drift at all.
+
 Press Start and it plays until you press Stop, with the screen off or another app open.
 There is no timer and no recording behind it: each sound is generated as it plays, so it never
 reaches an end, never loops, and is the same in the last hour of the night as in the first.

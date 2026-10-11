@@ -73,7 +73,8 @@ public class NoiseTest {
         expect(sound, "is not too loud", rms < (hum > 1 ? 0.22 : 0.16));
         expect(sound, "never reaches the clipping point", peak < 0.99);
         expect(sound, "has no quiet second", quietest > 0.9 * rms);
-        expect(sound, "has no loud second", loudest < 1.1 * rms);
+        // A strong hum makes its slow swell between the two engines more of the total.
+        expect(sound, "has no loud second", loudest < (hum > 1 ? 1.12 : 1.1) * rms);
         expect(sound, "is as loud at the end as at the start",
                 Math.abs(lastMinute / firstMinute - 1) < 0.02);
         // The hum is shared by both ears; the noise around it must not be.
